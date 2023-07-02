@@ -9,7 +9,7 @@
 #include "rosc.h"
 #include "hardware/sync.h"
 #include "hardware/structs/scb.h"
-#include "platform/mbed_wait_api.h"
+#include "pico/time.h"
 
 static uint t_scb_orig;
 static uint t_en0_orig;
@@ -159,14 +159,13 @@ void sleepFinished(){
     rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_BITS);
 
 
-    wait_us(100*1000);
-
+    sleep_ms(100);
     scb_hw->scr = t_scb_orig;
     clocks_hw->sleep_en0 = t_en0_orig;
     clocks_hw->sleep_en1 = t_en1_orig;
-    wait_us(200*1000);
+    sleep_ms(200);
     clocks_init();
-    wait_us(200*1000);
+    sleep_ms(200);
 
     callbackFunc();
 }
