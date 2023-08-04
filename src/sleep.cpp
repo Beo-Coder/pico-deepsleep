@@ -103,7 +103,7 @@ void sleep_run_from_dormant_source(dormant_source_t dormant_source) {
                     0, // No GLMUX
                     clk_rtc_src,
                     src_hz,
-                    (src_hz/265));
+                    (src_hz / 265));
 
     // CLK PERI = clk_sys. Used as reference clock for Peripherals. No dividers so just select and enable
     clock_configure(clk_peri,
@@ -122,7 +122,6 @@ void sleep_run_from_dormant_source(dormant_source_t dormant_source) {
     } else {
         // Can disable xosc
         xosc_disable();
-
 
 
     }
@@ -151,10 +150,7 @@ void sleep_goto_sleep_until_org(datetime_t *t, rtc_callback_t callback) {
 }
 
 
-
-
-
-void sleepFinished(){
+void sleepFinished() {
 
     rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_BITS);
 
@@ -171,10 +167,10 @@ void sleepFinished(){
 }
 
 
-void sleep_goto_sleep_until(datetime_t *t_alarm, rtc_callback_t callback, bool xosc_en){
-    if(xosc_en){
+void sleep_goto_sleep_until(datetime_t *t_alarm, rtc_callback_t callback, bool xosc_en) {
+    if (xosc_en) {
         sleep_run_from_dormant_source(DORMANT_SOURCE_XOSC);
-    }else{
+    } else {
         sleep_run_from_dormant_source(DORMANT_SOURCE_ROSC);
     }
 
@@ -211,7 +207,8 @@ uint32_t days_in_months(uint16_t year, uint8_t month) {
     return days;
 }
 
-uint32_t date_to_seconds(uint16_t years, uint8_t months, uint8_t days, uint8_t hours, uint8_t minutes, uint8_t seconds) {
+uint32_t
+date_to_seconds(uint16_t years, uint8_t months, uint8_t days, uint8_t hours, uint8_t minutes, uint8_t seconds) {
     uint32_t totalSeconds = 0;
 
     totalSeconds += days_in_years(years) * 24 * 60 * 60;
@@ -224,7 +221,8 @@ uint32_t date_to_seconds(uint16_t years, uint8_t months, uint8_t days, uint8_t h
     return totalSeconds;
 }
 
-void seconds_to_date(uint32_t totalSeconds, uint16_t *years, uint8_t *months, uint8_t *days, uint8_t *hours, uint8_t *minutes, uint8_t *seconds) {
+void seconds_to_date(uint32_t totalSeconds, uint16_t *years, uint8_t *months, uint8_t *days, uint8_t *hours,
+                     uint8_t *minutes, uint8_t *seconds) {
     // Extract seconds, minutes, and hours
     *seconds = totalSeconds % 60;
     totalSeconds /= 60;
@@ -258,7 +256,9 @@ void seconds_to_date(uint32_t totalSeconds, uint16_t *years, uint8_t *months, ui
     *days = daysCount + 1;
 }
 
-void sleep_goto_sleep_for(uint32_t seconds, rtc_callback_t callback, bool xosc_en){
+void sleep_goto_sleep_for(uint32_t seconds, rtc_callback_t callback, bool xosc_en) {
+
+    rtc_get_datetime(&_t_alarm);
 
 
     seconds += date_to_seconds(_t_alarm.year, _t_alarm.month, _t_alarm.day, _t_alarm.hour, _t_alarm.min, _t_alarm.sec);
@@ -270,7 +270,6 @@ void sleep_goto_sleep_for(uint32_t seconds, rtc_callback_t callback, bool xosc_e
     seconds_to_date(seconds, &year, &month, &day, &hour, &minute, &second);
 
 
-
     _t_alarm.year = year;
     _t_alarm.month = month;
     _t_alarm.day = day;
@@ -279,11 +278,7 @@ void sleep_goto_sleep_for(uint32_t seconds, rtc_callback_t callback, bool xosc_e
     _t_alarm.sec = second;
 
 
-
-
     sleep_goto_sleep_until(&_t_alarm, callback, xosc_en);
-
-
 
 
 }
