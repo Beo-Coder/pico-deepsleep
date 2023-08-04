@@ -10,6 +10,7 @@
 #include "hardware/sync.h"
 #include "hardware/structs/scb.h"
 #include "pico/time.h"
+#include "Arduino.h"
 
 static uint t_scb_orig;
 static uint t_en0_orig;
@@ -35,7 +36,6 @@ datetime_t _t_alarm = {
         .min = 0,
         .sec = 0
 };
-
 
 
 static int8_t yOff; ///< Year offset from 2000
@@ -189,38 +189,96 @@ void sleep_goto_sleep_until(datetime_t *t_alarm, rtc_callback_t callback, bool x
 
 }
 
-void sleep_goto_sleep_for(long seconds, rtc_callback_t callback, bool xosc_en){
-    ss = seconds % 60;
-    seconds /= 60;
-    mm = seconds % 60;
-    seconds /= 60;
-    hh = seconds % 24;
-    uint16_t days = seconds / 24;
+int is_leap_year(uint16_t year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+uint32_t days_in_years(uint16_t years) {
+    uint32_t days = 0;
+    for (uint16_t y = 2000; y < 2000 + years; ++y) {
+        days += 365 + is_leap_year(y);
+    }
+    return days;
+}
+
+uint32_t days_in_months(uint16_t year, uint8_t month) {
+    uint32_t days = 0;
+    for (uint8_t m = 1; m < month; ++m) {
+        days += daysInMonth[m - 1];
+        if (m == 2 && is_leap_year(year))
+            days++; // Add one more day for February in a leap year
+    }
+    return days;
+}
+
+uint32_t date_to_seconds(uint16_t years, uint8_t months, uint8_t days, uint8_t hours, uint8_t minutes, uint8_t seconds) {
+    uint32_t totalSeconds = 0;
+
+    totalSeconds += days_in_years(years) * 24 * 60 * 60;
+    totalSeconds += days_in_months(2000 + years, months) * 24 * 60 * 60;
+    totalSeconds += (days - 1) * 24 * 60 * 60;
+    totalSeconds += hours * 60 * 60;
+    totalSeconds += minutes * 60;
+    totalSeconds += seconds;
+
+    return totalSeconds;
+}
+
+void seconds_to_date(uint32_t totalSeconds, uint16_t *years, uint8_t *months, uint8_t *days, uint8_t *hours, uint8_t *minutes, uint8_t *seconds) {
+    // Extract seconds, minutes, and hours
+    *seconds = totalSeconds % 60;
+    totalSeconds /= 60;
+    *minutes = totalSeconds % 60;
+    totalSeconds /= 60;
+    *hours = totalSeconds % 24;
+
+    // Extract days
+    uint16_t daysCount = totalSeconds / 24;
     uint8_t leap;
+    uint16_t yOff;
+
+    // Calculate years
     for (yOff = 0;; ++yOff) {
         leap = yOff % 4 == 0;
-        if (days < 365U + leap)
+        if (daysCount < 365U + leap)
             break;
-        days -= 365 + leap;
+        daysCount -= 365 + leap;
     }
-    for (m = 1; m < 12; ++m) {
-        uint8_t daysPerMonth = daysInMonth[m - 1];
-        if (leap && m == 2)
+    *years = yOff;
+
+    // Calculate months and remaining days
+    for (*months = 1; *months < 12; ++(*months)) {
+        uint8_t daysPerMonth = daysInMonth[(*months) - 1];
+        if (leap && (*months) == 2)
             ++daysPerMonth;
-        if (days < daysPerMonth)
+        if (daysCount < daysPerMonth)
             break;
-        days -= daysPerMonth;
+        daysCount -= daysPerMonth;
     }
-    d = days + 1;
+    *days = daysCount + 1;
+}
 
-    rtc_get_datetime(&_t_alarm);
+void sleep_goto_sleep_for(uint32_t seconds, rtc_callback_t callback, bool xosc_en){
 
-    _t_alarm.year = _t_alarm.year + yOff;
-    _t_alarm.month = _t_alarm.month + m-1;
-    _t_alarm.day = _t_alarm.day + d-1;
-    _t_alarm.hour = _t_alarm.hour + hh;
-    _t_alarm.min = _t_alarm.min + mm;
-    _t_alarm.sec = _t_alarm.sec + ss;
+
+    seconds += date_to_seconds(_t_alarm.year, _t_alarm.month, _t_alarm.day, _t_alarm.hour, _t_alarm.min, _t_alarm.sec);
+
+    uint16_t year;
+    uint8_t month, day, hour, minute, second;
+
+
+    seconds_to_date(seconds, &year, &month, &day, &hour, &minute, &second);
+
+
+
+    _t_alarm.year = year;
+    _t_alarm.month = month;
+    _t_alarm.day = day;
+    _t_alarm.hour = hour;
+    _t_alarm.min = minute;
+    _t_alarm.sec = second;
+
+
 
 
     sleep_goto_sleep_until(&_t_alarm, callback, xosc_en);
