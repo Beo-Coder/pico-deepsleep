@@ -10,7 +10,7 @@
 #include "hardware/sync.h"
 #include "hardware/structs/scb.h"
 #include "pico/time.h"
-#include "Arduino.h"
+//#include "Arduino.h"
 
 static uint t_scb_orig;
 static uint t_en0_orig;
