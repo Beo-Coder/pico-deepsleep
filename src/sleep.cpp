@@ -276,6 +276,7 @@ void sleep_goto_sleep_for(uint32_t seconds, rtc_callback_t callback, bool xosc_e
     _t_alarm.hour = hour;
     _t_alarm.min = minute;
     _t_alarm.sec = second;
+    _t_alarm.dotw = -1;
 
 
     sleep_goto_sleep_until(&_t_alarm, callback, xosc_en);
